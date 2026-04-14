@@ -23,8 +23,8 @@ import mm_pkg::*;
 //interface with FIFO
     output  req_upld_t                                                      fifo_rdreq,
     output  logic                                                           fifo_rdvalid,
-    input   dat_upld_t                                                      fifo_data,
-    input   logic                                                           fifo_data_valid,
+    input   dat_upld_t                                                      fifo_data,//from sram
+    input   logic                                                           fifo_data_valid,//from sram
     output  req_upld_t                                                      fifo_wrreq,
     output  logic                                                           fifo_wrvalid
 );
