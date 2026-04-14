@@ -86,66 +86,86 @@ import mm_pkg::*;
     input   logic [BLIT_DATCHN_NUMS-1:0]                        		    blit_rxdat_flitv
 );
 
-    localparam ReadNoSnp        = 4'h1 ;
-    localparam WriteNoSnpPtl    = 4'h3 ;
-    localparam WriteNoSnpFull   = 4'h2 ;
-    localparam RetryAck         = 3'h1 ;
-    localparam PCrdGrant        = 3'h2 ;
-    localparam DBIDResp         = 3'h3 ;
-    localparam Comp             = 3'h4 ;
-    localparam CompDBIDResp     = 3'h5 ;
-    localparam ReadReceipt      = 3'h6 ;
-    localparam CompData         = 2'h1 ;
-    localparam NCBWrData        = 2'h2 ;
+
+    // ------------------------------- frontend ---------------------------------
 
     // SM alloc
     genvar sm_idx;
     generate: sm_alloc
         for (sm_idx = 0; sm_idx < SM_NUMS; sm_idx++) begin
-            mm_allocator #() u_mm_allocator (
-
+            mm_allocator #(.mst_idx(sm_idx)) u_sm_allocator (
+                .clk(),
+                .rstn(),
+                // SM
+                .txreq_flit(),
+                .txreq_flitv(),
+                .txrsp_flit(),
+                .txrsp_flitv(),
+                .rxrsp_flit(),
+                .rxrsp_flitv(),
+                .txdat_flit(),
+                .txdat_flitv(),
+                .rxdat_flit(),
+                .rxdat_flitv(),
+                // To glb sram
+                .glbsram_rdreq(),
+                .glbsram_rdvalid(),
+                .glbsram_data(),
+                .glbsram_data_valid(),
+                .glbsram_wrreq(),
+                .glbsram_wrvalid()
             );
         end
     endgenerate
 
-        
+    // HOST alloc
+    mm_allocator #(.mst_idx(SM_NUMS)) u_host_allocator (
+        .clk(),
+        .rstn(),
+        // SM
+        .txreq_flit(),
+        .txreq_flitv(),
+        .txrsp_flit(),
+        .txrsp_flitv(),
+        .rxrsp_flit(),
+        .rxrsp_flitv(),
+        .txdat_flit(),
+        .txdat_flitv(),
+        .rxdat_flit(),
+        .rxdat_flitv(),
+        // To glb sram
+        .glbsram_rdreq(),
+        .glbsram_rdvalid(),
+        .glbsram_data(),
+        .glbsram_data_valid(),
+        .glbsram_wrreq(),
+        .glbsram_wrvalid()
+    );
 
+    // TS alloc
+    mm_allocator #(.mst_idx(SM_NUMS + 1)) u_ts_allocator (
+        .clk(),
+        .rstn(),
+        // SM
+        .txreq_flit(),
+        .txreq_flitv(),
+        .txrsp_flit(),
+        .txrsp_flitv(),
+        .rxrsp_flit(),
+        .rxrsp_flitv(),
+        .txdat_flit(),
+        .txdat_flitv(),
+        .rxdat_flit(),
+        .rxdat_flitv(),
+        // To glb sram
+        .glbsram_rdreq(),
+        .glbsram_rdvalid(),
+        .glbsram_data(),
+        .glbsram_data_valid(),
+        .glbsram_wrreq(),
+        .glbsram_wrvalid()
+    );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    // ------------------------------- backend ---------------------------------
 
 endmodule

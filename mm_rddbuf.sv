@@ -10,7 +10,6 @@ module mm_rddbuf
 import mm_pkg::*;
 #(
     parameter mst_idx = 0
-
 ) (
     input   bit                                                             clk,
     input   bit                                                             rstn,
@@ -27,16 +26,16 @@ import mm_pkg::*;
     input   logic                                                           glbsram_data_valid, 
     // ras
     output  logic                                                           err
-
 );
 
     // assert 
     // 1. reqentry full but still alloc
 
-
     localparam RDBUF_PTR_W = $clog2(RD_OST);
+    localparam CHN_W = $clog2(MST_DATCHN_NUMS);
 
     rdreq_list_t [RD_OST-1:0]           rdreq_entry;
+    logic [RD_OST-1:0]                  rdreq_entry_alloc;
     logic [RD_OST-1:0]                  rdreq_entry_valid;
     logic [RDBUF_PTR_W-1:0]             reqentry_alloc_ptr;
     // represent dut data arrived, level signal
@@ -46,6 +45,7 @@ import mm_pkg::*;
     logic [RD_OST-1:0]                  reqentry_dealloc;
     logic                               dealloc_update;
     logic [RD_OST-1:0][RDDATA_W-1:0]    dut_datbuf;
+    logic [RD_OST-1:0]                  dut_datbuf_alloc;
     logic [RD_OST-1:0][RDDATA_W-1:0]    glbsram_datbuf;
     logic [RDBUF_PTR_W-1:0]             dutdat_cam_ptr;
     logic [RDBUF_PTR_W-1:0]             last_alloc_ptr;
@@ -53,6 +53,7 @@ import mm_pkg::*;
     logic [RD_OST-1:0]                  nxt_ptr_valid;
     logic [RD_OST-1:0]                  head_vec;
     logic [RDBUF_PTR_W-1:0]             head_ones;
+    logic [CHN_W-1:0]                   rddata_chn_ptr;
 
     bit                                 err_headnoOnehot;
 
@@ -82,12 +83,16 @@ import mm_pkg::*;
 
     always_comb begin
         dutdat_cam_ptr = 0;
+        rddata_chn_ptr = 0;
         for (int i = 0; i < RD_OST; i++) begin: u_dutdat_cam
-            if (valid_CompData && 
-                (rdata_info.rdat_srcid == rdreq_entry[i].rdreq.rdreq_tgtid) &&
-                (rdata_info.rdat_txnid == rdreq_entry[i].rdreq.rdreq_txnid)) begin
-                dutdat_cam_ptr = i;
-                disable u_dutdat_cam;
+            for (int j = 0; j < MST_DATCHN_NUMS; j++) begin
+                if (|valid_CompData && 
+                    (rdreq_entry[i].rdreq.rdreq_tgtid == rdata_info[j].rdat_srcid) &&
+                    (rdreq_entry[i].rdreq.rdreq_txnid == rdata_info[j].rdat_txnid)) begin
+                    dutdat_cam_ptr = i;
+                    rddata_chn_ptr = j;
+                    disable u_dutdat_cam;
+                end
             end
         end
     end
@@ -106,7 +111,9 @@ import mm_pkg::*;
 
             assign reqentry_dealloc[idx]                        = dut_data_en[idx] & sram_data_en[idx];      
             assign head_vec[idx]                                = rdreq_entry[idx].head;   
-            assign sram_data_en[idx]                            = glbsram_data_valid && head_vec[idx];  
+            assign sram_data_en[idx]                            = glbsram_data_valid && head_vec[idx]; 
+            assign dut_datbuf_alloc[idx]                        = |valid_CompData && (dutdat_cam_ptr == idx);
+            assign rdreq_entry_alloc[idx]                       = rddbuf_valid && (reqentry_alloc_ptr == idx);
 
             always_ff @(posedge clk) begin
                 if (!rstn) begin
@@ -141,7 +148,7 @@ import mm_pkg::*;
                     rdreq_entry_valid[idx]                      <= 1'b0;
                 end else if (reqentry_dealloc[idx]) begin
                     rdreq_entry_valid[idx]                      <= 1'b0;
-                end else if (rddbuf_valid && (reqentry_alloc_ptr == idx)) begin
+                end else if (rdreq_entry_alloc[idx]) begin
                     rdreq_entry_valid[idx]                      <= 1'b1;
                 end
             end
@@ -154,7 +161,7 @@ import mm_pkg::*;
                     rdreq_entry[idx].rdreq.rdreq_addr           <= 'd0;
                     rdreq_entry[idx].rdreq.rdreq_size           <= 'd0;
                     rdreq_entry[idx].rdreq.rdreq_order          <= 'd0;
-                end else if (rddbuf_valid && (reqentry_alloc_ptr == idx)) begin
+                end else if (rdreq_entry_alloc[idx]) begin
                     rdreq_entry[idx].rdreq.rdreq_srcid          <= rddbuf_req.rdreq_srcid; 
                     rdreq_entry[idx].rdreq.rdreq_tgtid          <= rddbuf_req.rdreq_tgtid;
                     rdreq_entry[idx].rdreq.rdreq_txnid          <= rddbuf_req.rdreq_txnid;
@@ -167,9 +174,9 @@ import mm_pkg::*;
             always_ff @(posedge clk) begin
                 if (!rstn) begin
                     rdreq_entry[idx].dut_dat_nums               <= 'd0;
-                end else if (valid_CompData && reqentry_dealloc[idx]) begin
+                end else if (|valid_CompData && reqentry_dealloc[idx]) begin
                     rdreq_entry[idx].dut_dat_nums               <= 'd0;
-                end else if (valid_CompData && (dutdat_cam_ptr == idx)) begin
+                end else if (|valid_CompData && (dutdat_cam_ptr == idx)) begin
                     rdreq_entry[idx].dut_dat_nums               <= rdreq_entry[idx].dut_dat_nums + 'd1;
                 end
             end
@@ -211,12 +218,12 @@ import mm_pkg::*;
                     dut_datbuf[idx]                             <= 'd0;
                 end else if (reqentry_dealloc[idx]) begin
                     dut_datbuf[idx]                             <= 'd0;
-                end else if (valid_CompData && (dutdat_cam_ptr == idx)) begin
-                    case (rdata_info.rdat_dataid)
-                        `FLIT0_ENC: dut_datbuf[idx][`FLIT0]     <= rdata_info.rdat_data;
-                        `FLIT1_ENC: dut_datbuf[idx][`FLIT1]     <= rdata_info.rdat_data;
-                        `FLIT2_ENC: dut_datbuf[idx][`FLIT2]     <= rdata_info.rdat_data;
-                        `FLIT3_ENC: dut_datbuf[idx][`FLIT3]     <= rdata_info.rdat_data;
+                end else if (dut_datbuf_alloc[idx]) begin
+                    case (rdata_info[rddata_chn_ptr].rdat_dataid)
+                        `FLIT0_ENC: dut_datbuf[idx][`FLIT0]     <= rdata_info[rddata_chn_ptr].rdat_data;
+                        `FLIT1_ENC: dut_datbuf[idx][`FLIT1]     <= rdata_info[rddata_chn_ptr].rdat_data;
+                        `FLIT2_ENC: dut_datbuf[idx][`FLIT2]     <= rdata_info[rddata_chn_ptr].rdat_data;
+                        `FLIT3_ENC: dut_datbuf[idx][`FLIT3]     <= rdata_info[rddata_chn_ptr].rdat_data;
                     endcase
                 end
             end
@@ -242,7 +249,7 @@ import mm_pkg::*;
             glbsram_rdreq.req_be                                <= 'd0;
             glbsram_rdreq.req_sec_id                            <= 'd0;
         end else if (rddbuf_valid) begin
-            glbsram_rdreq.req_addr                              <= rddbuf_req.wrreq_addr;
+            glbsram_rdreq.req_addr                              <= rddbuf_req.rdreq_addr;
             glbsram_rdreq.req_rw                                <= 1'b0;
             glbsram_rdreq.req_wrdata                            <= 'd0;
             glbsram_rdreq.req_be                                <= 'd0;

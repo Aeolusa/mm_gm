@@ -56,20 +56,21 @@
     `define FLIT3       1023:768;
 
     // TBD 
+    // REQ/RSP/DAT_OP means opcode field in relative TYPE
     `define REQ_OP
     `define RSP_OP
     `define DAT_OP     
     `define OP_READNOSNP 'h4
-    `define OP_WRITENOSNPPTL
-    `define OP_WRITENOSNPFULL
-    `define OP_RETRYACK
-    `define OP_COMP
-    `define OP_COMPDBIDRESP
-    `define OP_DBIDRESP
-    `define OP_PCRDGRANT
-    `define OP_READRECEIPT
-    `define OP_COMPDATA
-    `define OP_NCBWRDATA
+    `define OP_WRITENOSNPPTL 'h1c
+    `define OP_WRITENOSNPFULL 'h1d
+    `define OP_RETRYACK 'h3
+    `define OP_COMP 'h4
+    `define OP_COMPDBIDRESP 'h5
+    `define OP_DBIDRESP 'h6
+    `define OP_PCRDGRANT 'h7
+    `define OP_READRECEIPT 'h8
+    `define OP_COMPDATA 'h4
+    `define OP_NCBWRDATA 'h3
 
     typedef struct packed {
         logic [NID_W-1:0]                   req_srcid;

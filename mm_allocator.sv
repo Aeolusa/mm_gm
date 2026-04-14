@@ -8,7 +8,9 @@
 // ASSUME: REQ chn will be constraint to ONE
 module mm_allocator 
 import mm_pkg::*;
-(
+#(
+    parameter mst_idx = 0
+) (
     input   bit                                                             clk,
     input   bit                                                             rstn,
     // SM
@@ -31,18 +33,6 @@ import mm_pkg::*;
     output  req_upld_t                                                      glbsram_wrreq,
     output  logic                                                           glbsram_wrvalid
 );
-
-    localparam ReadNoSnp        = 4'h1 ;
-    localparam WriteNoSnpPtl    = 4'h3 ;
-    localparam WriteNoSnpFull   = 4'h2 ;
-    localparam RetryAck         = 3'h1 ;
-    localparam PCrdGrant        = 3'h2 ;
-    localparam DBIDResp         = 3'h3 ;
-    localparam Comp             = 3'h4 ;
-    localparam CompDBIDResp     = 3'h5 ;
-    localparam ReadReceipt      = 3'h6 ;
-    localparam CompData         = 2'h1 ;
-    localparam NCBWrData        = 2'h2 ;
     
     req_info_t [MST_REQCHN_NUMS-1:0]                        req_info;
     rsp_info_t [MST_RSPCHN_NUMS-1:0]                        rsp_info;
@@ -65,6 +55,12 @@ import mm_pkg::*;
     logic                                                   rddbuf_valid;
     wrreq_t                                                 wrdbuf_req;
     logic                                                   wrdbuf_valid;
+    
+    logic                                                   rddbuf_err;
+    logic                                                   wrdbuf_err;
+    logic                                                   err;
+
+
     generate
         for (genvar i = 0; i < MST_REQCHN_NUMS; i++) begin: u_req_intf
             assign valid_Request[i]         = txreq_flitv[i];
@@ -95,11 +91,13 @@ import mm_pkg::*;
 
      endgenerate
 
+    assign err                              = rddbuf_err | wrdbuf_err;
+
     mm_req u_mm_req(.*);
 
-    mm_rddbuf u_mm_rddbuf(.*);
+    mm_rddbuf u_mm_rddbuf(.*, .err(rddbuf_err));
 
-    mm_wrdbuf u_mm_wrdbuf(.*);
+    mm_wrdbuf u_mm_wrdbuf(.*, .err(wrdbuf_err));
         
 endmodule
 

@@ -19,12 +19,7 @@
 
 module mm_req 
 import mm_pkg::*;
-#(
-    parameter NID_W                 = 11,
-    parameteR ADDR_WIDTH            = 60,
-    parameter REQ_OST               = 64
-
-) (
+(
     input   bit                                                             clk,
     input   bit                                                             rstn,
     // op

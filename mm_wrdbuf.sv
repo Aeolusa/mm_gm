@@ -9,8 +9,6 @@
 module mm_wrdbuf
 import mm_pkg::*;
 #(
-    parameter NID_W                 = 11,
-    parameteR ADDR_WIDTH            = 60,
     parameter WRDATBUF_DEPTH        = 4
 
 ) (
@@ -28,7 +26,6 @@ import mm_pkg::*;
     output  logic                                                           glbsram_wrvalid,
     // ras
     output  logic                                                           err
-
 );
 
     localparam WRBUF_PTR_W          = $clog2(WRDATBUF_DEPTH);
@@ -53,7 +50,7 @@ import mm_pkg::*;
 
     assign err                  = err_datbuf_ovf | err_dataline_ovf | err_dataid_unk;
     // In case datbuf is full
-    assign err_datbuf_ovf       = &wr_datbuf_valid && (match_flag == 0) && valid_NCBWrData; 
+    assign err_datbuf_ovf       = &wr_datbuf_valid && (match_flag == 0) && |valid_NCBWrData; 
     // In case dataline is narrow than full trans' data width
     assign err_dataline_ovf     = wdat_datacnt > 4;
     assign err_dataid_unk       = |datid_unk;
@@ -134,7 +131,7 @@ import mm_pkg::*;
                     wr_datbuf[idx].wdat_data                    <= 'd0;
                     wr_datbuf[idx].wdat_be                      <= 'd0;
                 end else if (first_alloc[idx] && (idx == datbuf_alloc_ptr)) begin
-                    case (wdata_info.wdat_dataid)
+                    case (wdata_info[wrchn_idx].wdat_dataid)
                         `FLIT0_ENC: begin
                             wr_datbuf[idx].wdat_data[`FLIT0]    <= wdata_info[wrchn_idx].wdat_data;
                             wr_datbuf[idx].wdat_be[`FLIT0]      <= wdata_info[wrchn_idx].wdat_be;
