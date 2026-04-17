@@ -5,6 +5,7 @@
 // Description: For multiple mst rd/wr data check
 //=============================================================================
 
+// TBD sector vector Judging
 
 module mm_rddbuf
 import mm_pkg::*;
