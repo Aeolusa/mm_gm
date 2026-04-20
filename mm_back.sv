@@ -11,7 +11,7 @@ import mm_pkg::*;
     input   logic                                                           rdreq_flitv,
     input   req_upld_t                                                      wrreq_flit,
     input   logic                                                           wrreq_flitv,
-    output  req_upld_t                                                      rd_data_flit,
+    output  dat_upld_t                                                      rd_data_flit,
     output  logic                                                           rd_data_flitv
 );
 
@@ -29,7 +29,7 @@ import mm_pkg::*;
     logic u_sram_rd_ready;
     logic u_sram_rd_valid;
     logic [SRAM_DATA_WIDTH - 1 : 0] u_sram_rd_data
-    req_data_flit_t rd_data_flit_buf;
+    dat_upld_t rd_data_flit_buf;
     logic rd_data_flitv_buf;
 
     assign rd_data_flit = rd_data_flit_buf;

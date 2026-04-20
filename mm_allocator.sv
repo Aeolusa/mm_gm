@@ -60,6 +60,13 @@ import mm_pkg::*;
     logic                                                   wrdbuf_err;
     logic                                                   err;
 
+    req_upld_t                                              rdreq_flit;
+    logic                                                   rdreq_flitv;
+    req_upld_t                                              wrreq_flit;
+    logic                                                   wrreq_flitv;
+    dat_upld_t                                              rd_data_flit;
+    logic                                                   rd_data_flitv;
+
 
     generate
         for (genvar i = 0; i < MST_REQCHN_NUMS; i++) begin: u_req_intf
@@ -93,11 +100,20 @@ import mm_pkg::*;
 
     assign err                              = rddbuf_err | wrdbuf_err;
 
-    mm_req u_mm_req(.*);
+    mm_req u_mm_req(.*,
+                    .glbsram_wrreq(wrreq_flit),
+                    .glbsram_wrvalid(wrreq_flitv));
 
-    mm_rddbuf u_mm_rddbuf(.*, .err(rddbuf_err));
+    mm_rddbuf u_mm_rddbuf(.*, 
+                          .glbsram_rdreq(rdreq_flit),
+                          .glbsram_rdvalid(rdreq_flitv),
+                          .glbsram_data(rd_data_flit),
+                          .glbsram_data_valid(rd_data_flitv),
+                          .err(rddbuf_err));
 
     mm_wrdbuf u_mm_wrdbuf(.*, .err(wrdbuf_err));
+
+    mm_back u_mm_back(.*);
         
 endmodule
 
