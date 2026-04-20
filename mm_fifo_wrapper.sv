@@ -118,9 +118,6 @@ import mm_pkg::*;
     assign wr_be = wr_fifo_be;
     assign rd_en = rd_valid;
     assign rd_addr = rd_fifo_addr;
-    
-
-
 
 
 endmodule
